@@ -484,6 +484,10 @@ class FOSElasticaExtension extends Extension
                 'kernel.event_listener',
                 array('event' => 'kernel.terminate', 'method' => 'onKernelTerminate')
             );
+            $listenerDef->addTag(
+                'console.event_listener',
+                array('event' => 'command.terminate', 'method' => 'onConsoleTerminate')
+            );
             $listenerConfig['async'] = true;
             $listenerConfig['defer'] = true;
         }

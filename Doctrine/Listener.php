@@ -238,6 +238,20 @@ class Listener implements EventSubscriber
     }
 
     /**
+     * new
+     * Handler for the "console.terminate" Symfony event. This event is subscribed to if the listener is configured to
+     * persist asynchronously.
+     */
+    public function onConsoleTerminate()
+    {
+        if($this->config['async'] && $this->config['defer']) {
+            
+            $this->config['defer'] = false;
+            $this->persistScheduled();
+        }
+    }
+
+    /**
      * Record the specified identifier to delete. Do not need to entire object.
      * @param  mixed  $object
      * @return mixed
