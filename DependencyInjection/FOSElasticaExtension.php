@@ -463,11 +463,12 @@ class FOSElasticaExtension extends Extension
         $listenerDef = new DefinitionDecorator($abstractListenerId);
         $listenerDef->replaceArgument(0, new Reference($objectPersisterId));
         $listenerDef->replaceArgument(1, $this->getDoctrineEvents($typeConfig));
-        $listenerDef->replaceArgument(3, array(
+        
+        $listenerConfig = array( //new
             'identifier' => $typeConfig['identifier'],
             'indexName' => $indexName,
-            'typeName' => $typeName,
-        ));
+            'typeName' => $typeName
+        );
         if ($typeConfig['listener']['logger']) {
             $listenerDef->replaceArgument(4, new Reference($typeConfig['listener']['logger']));
         }
@@ -476,6 +477,22 @@ class FOSElasticaExtension extends Extension
             case 'orm': $listenerDef->addTag('doctrine.event_subscriber'); break;
             case 'mongodb': $listenerDef->addTag('doctrine_mongodb.odm.event_subscriber'); break;
         }
+
+        if($typeConfig['listener']['async']) {
+            $listenerDef->setPublic(true);
+            $listenerDef->addTag(
+                'kernel.event_listener',
+                array('event' => 'kernel.terminate', 'method' => 'onKernelTerminate')
+            );
+            $listenerDef->addTag(
+                'console.event_listener',
+                array('event' => 'command.terminate', 'method' => 'onConsoleTerminate')
+            );
+            $listenerConfig['async'] = true;
+            $listenerConfig['defer'] = true;
+        }
+        
+        $listenerDef->replaceArgument(3, $listenerConfig);
 
         $container->setDefinition($listenerId, $listenerDef);
 

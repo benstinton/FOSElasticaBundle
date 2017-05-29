@@ -78,6 +78,8 @@ class Listener implements EventSubscriber
     ) {
         $this->config = array_merge(array(
             'identifier' => 'id',
+            'async' => false, //new
+            'defer' => false // new
         ), $config);
         $this->events = $events;
         $this->indexable = $indexable;
@@ -154,12 +156,23 @@ class Listener implements EventSubscriber
     }
 
     /**
+     * new
+     * Determines whether or not it is okay to persist now.
+     *
+     * @return bool
+     */
+    private function shouldPersist()
+    {
+        return !$this->config['defer'];
+    }
+
+    /**
      * Persist scheduled objects to ElasticSearch
      * After persisting, clear the scheduled queue to prevent multiple data updates when using multiple flush calls
      */
     private function persistScheduled()
     {
-        if (count($this->scheduledForInsertion)) {
+        /*if (count($this->scheduledForInsertion)) {
             $this->objectPersister->insertMany($this->scheduledForInsertion);
             $this->scheduledForInsertion = array();
         }
@@ -170,6 +183,21 @@ class Listener implements EventSubscriber
         if (count($this->scheduledForDeletion)) {
             $this->objectPersister->deleteManyByIdentifiers($this->scheduledForDeletion);
             $this->scheduledForDeletion = array();
+        }*/
+        if($this->shouldPersist()) { // new
+
+            if (count($this->scheduledForInsertion)) {
+                $this->objectPersister->insertMany($this->scheduledForInsertion);
+                $this->scheduledForInsertion = array();
+            }
+            if (count($this->scheduledForUpdate)) {
+                $this->objectPersister->replaceMany($this->scheduledForUpdate);
+                $this->scheduledForUpdate = array();
+            }
+            if (count($this->scheduledForDeletion)) {
+                $this->objectPersister->deleteManyByIdentifiers($this->scheduledForDeletion);
+                $this->scheduledForDeletion = array();
+            }
         }
     }
 
@@ -179,7 +207,9 @@ class Listener implements EventSubscriber
      */
     public function preFlush(EventArgs $eventArgs)
     {
-        $this->persistScheduled();
+        if(!$this->config['async'] && !$this->config['defer']) { //new
+            $this->persistScheduled();
+        }
     }
 
     /**
@@ -188,7 +218,37 @@ class Listener implements EventSubscriber
      */
     public function postFlush(EventArgs $eventArgs)
     {
-        $this->persistScheduled();
+        if(!$this->config['async'] && !$this->config['defer']) { //new
+            $this->persistScheduled();
+        }
+    }
+
+    /**
+     * new
+     * Handler for the "kernel.terminate" Symfony event. This event is subscribed to if the listener is configured to
+     * persist asynchronously.
+     */
+    public function onKernelTerminate()
+    {
+        if($this->config['async'] && $this->config['defer']) {
+            
+            $this->config['defer'] = false;
+            $this->persistScheduled();
+        }
+    }
+
+    /**
+     * new
+     * Handler for the "console.terminate" Symfony event. This event is subscribed to if the listener is configured to
+     * persist asynchronously.
+     */
+    public function onConsoleTerminate()
+    {
+        if($this->config['async'] && $this->config['defer']) {
+            
+            $this->config['defer'] = false;
+            $this->persistScheduled();
+        }
     }
 
     /**
