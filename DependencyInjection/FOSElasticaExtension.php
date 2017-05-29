@@ -463,7 +463,7 @@ class FOSElasticaExtension extends Extension
         $listenerDef = new DefinitionDecorator($abstractListenerId);
         $listenerDef->replaceArgument(0, new Reference($objectPersisterId));
         $listenerDef->replaceArgument(1, $this->getDoctrineEvents($typeConfig));
-        
+
         $listenerConfig = array( //new
             'identifier' => $typeConfig['identifier'],
             'indexName' => $indexName,
@@ -491,7 +491,7 @@ class FOSElasticaExtension extends Extension
             $listenerConfig['async'] = true;
             $listenerConfig['defer'] = true;
         }
-        
+
         $listenerDef->replaceArgument(3, $listenerConfig);
 
         $container->setDefinition($listenerId, $listenerDef);

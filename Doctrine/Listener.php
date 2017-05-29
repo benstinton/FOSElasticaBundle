@@ -35,7 +35,7 @@ class Listener implements EventSubscriber
      *
      * @var string
      */
-    private $config;
+    protected $config;
 
     /**
      * Objects scheduled for insertion and replacement
